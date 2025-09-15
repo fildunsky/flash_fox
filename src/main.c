@@ -6,6 +6,7 @@
 #include <errno.h>
 
 #include "log.h"
+#include <libusb-1.0/libusb.h>
 #include "usb.h"
 
 #include <fcntl.h>

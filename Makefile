@@ -1,56 +1,58 @@
-TARGET = flash_fox
-CC = gcc
-SDIR = src
-LIBS = libusb-1.0 libxml-2.0
+include $(TOPDIR)/rules.mk
 
-ROOT_DIR = $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
-CPPFLAGS = -D_GNU_SOURCE -DPIC -DDEBUG
-CFLAGS = -O3 -fPIC -Wall -ffunction-sections -fdata-sections
-LDFLAGS = -s -Wl,--gc-sections
-#CFLAGS = -O0 -g -ggdb -fPIC -Wall -ffunction-sections -fdata-sections
-#LDFLAGS = -Wl,--gc-sections
+PKG_NAME:=flash-fox
+PKG_RELEASE:=1
+PKG_LICENSE:=MIT
 
-ifneq ($(LIBS),)
-  CFLAGS += $(shell pkg-config --cflags $(LIBS))
-  LDLIBS = $(shell pkg-config --libs $(LIBS))
-endif
+# Если исходники локально рядом со SDK:
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
+PKG_BUILD_DEPENDS:=libusb libxml2 zlib
+# или если из git/тарбола — добавь PKG_SOURCE, PKG_SOURCE_URL и т.д.
 
-OBJDIR = .obj
-DEPDIR = .dep
-VPATH = $(ROOT_DIR)
-SRCS = $(patsubst $(ROOT_DIR)/%,%,$(foreach d,$(SDIR),$(wildcard $(ROOT_DIR)/$(d)/*.c)))
-OBJS = $(patsubst %.c,$(OBJDIR)/%.o,$(SRCS))
-DEPS = $(patsubst %.c,$(DEPDIR)/%.d,$(SRCS))
+include $(INCLUDE_DIR)/package.mk
 
-DEPFLAGS = -MT $@ -MD -MP -MF $(DEPDIR)/$*.Td
-COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) -c -o $@
-LINK.o = $(CC) $(CFLAGS) $(LDFLAGS) -o $@
-PRECOMPILE = @mkdir -p $(OBJDIR)/$(dir $*) ; mkdir -p $(DEPDIR)/$(dir $*)
-POSTCOMPILE = @mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
+define Package/flash-fox
+  SECTION:=utils
+  CATEGORY:=Utilities
+  TITLE:=flash_fox utility
+  DEPENDS:=+libusb-1.0 +libxml2 +zlib
+endef
 
-all: $(TARGET)
+define Package/flash-fox/description
+USB utility using libusb-1.0 and libxml2.
+endef
 
-$(TARGET): $(OBJS)
-	$(LINK.o) $^ $(LDLIBS)
+# Если у тебя есть собственный Makefile (как в сообщении) — используем его.
+# Важно передать правильные CC/CFLAGS/LDFLAGS и pkg-config из STAGING_DIR.
 
-$(DEPDIR)/%.d: ;
+define Build/Prepare
+	$(call Build/Prepare/Default)
+	# Скопируем твой проект в $(PKG_BUILD_DIR)
+	# Предположим, что рядом с этим Makefile лежит каталог src/
+	$(CP) ./src $(PKG_BUILD_DIR)/
+	$(CP) ./Makefile.app $(PKG_BUILD_DIR)/Makefile
+endef
 
-$(OBJDIR)/%.o: %.c
+# где Makefile.app — это твой оригинальный Makefile из вопроса (можно назвать просто Makefile, если не конфликтует)
 
-$(OBJDIR)/%.o: %.c $(DEPDIR)/%.d $(MAKEFILE_LIST)
-	$(PRECOMPILE)
-	$(COMPILE.c) $<
-	$(POSTCOMPILE)
+define Build/Compile
+	$$(MAKE) -C $(PKG_BUILD_DIR) \
+		CC="$(TARGET_CC)" \
+		CFLAGS="$(TARGET_CFLAGS) $(TARGET_CPPFLAGS) \
+		        $$($(STAGING_DIR_HOSTPKG)/bin/pkg-config --cflags libusb-1.0 libxml-2.0) \
+		        -I$(STAGING_DIR)/usr/include/libusb-1.0" \
+		CPPFLAGS="$(TARGET_CPPFLAGS)" \
+		LDFLAGS="$(TARGET_LDFLAGS)" \
+		LDLIBS="$$($(STAGING_DIR_HOSTPKG)/bin/pkg-config --libs libusb-1.0 libxml-2.0)" \
+		PKG_CONFIG="$(STAGING_DIR_HOSTPKG)/bin/pkg-config" \
+		PKG_CONFIG_PATH="$(STAGING_DIR)/usr/lib/pkgconfig:$(STAGING_DIR)/usr/share/pkgconfig" \
+		PKG_CONFIG_SYSROOT_DIR="$(STAGING_DIR)"
+endef
 
-clean:
-	$(RM) -rf $(OBJDIR) $(DEPDIR)
+define Package/flash-fox/install
+	$(INSTALL_DIR) $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/flash_fox $(1)/usr/bin/flash_fox
+endef
 
-distclean: clean
-	$(RM) $(TARGET)
-
-.PRECIOUS: $(DEPDIR)/%.d
-
-.PHONY: all clean distclean
-
--include $(DEPS)
+$(eval $(call BuildPackage,flash-fox))
 
