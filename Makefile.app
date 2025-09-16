@@ -1,7 +1,7 @@
 TARGET = flash_fox
 CC = gcc
 SDIR = src
-LIBS = libusb-1.0 libxml-2.0
+LIBS = libusb-1.0
 
 ROOT_DIR = $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 CPPFLAGS = -D_GNU_SOURCE -DPIC -DDEBUG
@@ -10,7 +10,7 @@ LDFLAGS = -s -Wl,--gc-sections
 #CFLAGS = -O0 -g -ggdb -fPIC -Wall -ffunction-sections -fdata-sections
 #LDFLAGS = -Wl,--gc-sections
 
-LIBFLAGS = -lusb-1.0 -lxml2
+LIBFLAGS = -lusb-1.0
 
 OBJDIR = .obj
 DEPDIR = .dep

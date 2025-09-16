@@ -1,13 +1,11 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flash-fox
-PKG_RELEASE:=1
+PKG_RELEASE:=1.1
 PKG_LICENSE:=MIT
 
-# Если исходники локально рядом со SDK:
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
-PKG_BUILD_DEPENDS:=libusb libxml2 zlib
-# или если из git/тарбола — добавь PKG_SOURCE, PKG_SOURCE_URL и т.д.
+PKG_BUILD_DEPENDS:=libusb zlib
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -15,25 +13,18 @@ define Package/flash-fox
   SECTION:=utils
   CATEGORY:=Utilities
   TITLE:=flash_fox utility
-  DEPENDS:=+libusb-1.0 +libxml2 +zlib
+  DEPENDS:=+libusb-1.0 +zlib
 endef
 
 define Package/flash-fox/description
-USB utility using libusb-1.0 and libxml2.
+USB utility using libusb-1.0.
 endef
-
-# Если у тебя есть собственный Makefile (как в сообщении) — используем его.
-# Важно передать правильные CC/CFLAGS/LDFLAGS и pkg-config из STAGING_DIR.
 
 define Build/Prepare
 	$(call Build/Prepare/Default)
-	# Скопируем твой проект в $(PKG_BUILD_DIR)
-	# Предположим, что рядом с этим Makefile лежит каталог src/
 	$(CP) ./src $(PKG_BUILD_DIR)/
 	$(CP) ./Makefile.app $(PKG_BUILD_DIR)/Makefile
 endef
-
-# где Makefile.app — это твой оригинальный Makefile из вопроса (можно назвать просто Makefile, если не конфликтует)
 
 define Build/Compile
 	$$(MAKE) -C $(PKG_BUILD_DIR) \
